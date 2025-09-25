@@ -1,46 +1,106 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
+using System.Threading.Tasks;
 
 namespace RayTracer;
 
 public class Program
 {
-    private const int Width = 800;
-    private const int Height = 600;
-    private const int MaxDepth = 5;
+    // Quality presets with anti-aliasing samples
+    private static readonly Dictionary<string, (int width, int height, int maxDepth, int samples)> QualityPresets = new()
+    {
+        { "low", (640, 480, 3, 1) },
+        { "medium", (1280, 720, 5, 2) },
+        { "high", (1920, 1080, 6, 4) },
+        { "ultra", (2560, 1440, 8, 8) },
+        { "4k", (3840, 2160, 10, 16) }
+    };
+
     private const float Epsilon = 0.001f;
 
-    public static async Task Main()
+    public static async Task Main(string[] args)
     {
-        await RenderAsync();
+        // Parse command line arguments
+        string quality = args.Length > 0 ? args[0].ToLower() : "high";
+
+        if (!QualityPresets.ContainsKey(quality))
+        {
+            Console.WriteLine("Available quality settings: low, medium, high, ultra, 4k");
+            Console.WriteLine("Usage: dotnet run [quality]");
+            Console.WriteLine("Example: dotnet run ultra");
+            Console.WriteLine("Using default: high");
+            quality = "high";
+        }
+
+        var (width, height, maxDepth, samples) = QualityPresets[quality];
+        Console.WriteLine($"Rendering at {width}x{height} with {maxDepth} ray bounces and {samples}x anti-aliasing ({quality} quality)");
+
+        await RenderAsync(width, height, maxDepth, samples);
     }
 
-    public static async Task RenderAsync()
+    public static async Task RenderAsync(int width, int height, int maxDepth, int samples)
     {
         var scene = CreateScene();
         var camera = new Camera(new Vector3(0, 0, -5), Vector3.UnitZ, Vector3.UnitY, 60);
-        var pixels = new Vector3[Width * Height];
+        var pixels = new Vector3[width * height];
+        var random = new Random();
 
-        Console.WriteLine("Rendering...");
+        Console.WriteLine($"Rendering {width * height:N0} pixels with {samples * width * height:N0} total rays...");
+        var startTime = DateTime.Now;
 
         // Parallel rendering for better performance
         await Task.Run(() =>
         {
-            Parallel.For(0, Height, y =>
+            var lockObject = new object();
+            var linesCompleted = 0;
+
+            Parallel.For(0, height, () => new Random(), (y, loop, localRandom) =>
             {
-                for (int x = 0; x < Width; x++)
+                for (int x = 0; x < width; x++)
                 {
-                    var ray = camera.GetRay(x, y, Width, Height);
-                    var color = TraceRay(ray, scene, MaxDepth);
-                    pixels[y * Width + x] = color;
+                    var color = Vector3.Zero;
+
+                    // Anti-aliasing: sample multiple rays per pixel
+                    for (int s = 0; s < samples; s++)
+                    {
+                        float offsetX = samples > 1 ? (float)localRandom.NextDouble() - 0.5f : 0;
+                        float offsetY = samples > 1 ? (float)localRandom.NextDouble() - 0.5f : 0;
+
+                        var ray = camera.GetRay(x + offsetX, y + offsetY, width, height);
+                        color += TraceRay(ray, scene, maxDepth);
+                    }
+
+                    pixels[y * width + x] = color / samples;
                 }
 
-                if (y % 50 == 0)
-                    Console.WriteLine($"Progress: {y}/{Height} lines completed");
-            });
+                lock (lockObject)
+                {
+                    linesCompleted++;
+                    if (linesCompleted % Math.Max(1, height / 20) == 0)
+                    {
+                        var progress = (double)linesCompleted / height * 100;
+                        var elapsed = DateTime.Now - startTime;
+                        if (progress > 0)
+                        {
+                            var estimated = TimeSpan.FromTicks((long)(elapsed.Ticks / progress * 100));
+                            Console.WriteLine($"Progress: {progress:F1}% ({linesCompleted}/{height} lines) - ETA: {estimated:mm\\:ss}");
+                        }
+                    }
+                }
+
+                return localRandom;
+            }, _ => { });
         });
 
-        await SaveImageAsync(pixels, "raytraced_image.ppm");
-        Console.WriteLine("Image saved as 'raytraced_image.ppm'");
+        var totalTime = DateTime.Now - startTime;
+        Console.WriteLine($"Rendering completed in {totalTime:mm\\:ss\\.ff}");
+
+        var filename = $"raytraced_{width}x{height}_{samples}xAA.ppm";
+        await SaveImageAsync(pixels, filename, width, height);
+        Console.WriteLine($"Image saved as '{filename}'");
+        Console.WriteLine($"File size: {new FileInfo(filename).Length / 1024.0 / 1024.0:F1} MB");
     }
 
     private static Scene CreateScene()
@@ -149,31 +209,37 @@ public class Program
     private static Vector3 Reflect(Vector3 incident, Vector3 normal) =>
         incident - 2 * Vector3.Dot(incident, normal) * normal;
 
-    private static async Task SaveImageAsync(Vector3[] pixels, string filename)
+    private static async Task SaveImageAsync(Vector3[] pixels, string filename, int width, int height)
     {
         using var writer = new StreamWriter(filename);
 
         // PPM header
         await writer.WriteLineAsync("P3");
-        await writer.WriteLineAsync($"{Width} {Height}");
+        await writer.WriteLineAsync($"# Ray traced image {width}x{height}");
+        await writer.WriteLineAsync($"{width} {height}");
         await writer.WriteLineAsync("255");
 
-        // Write pixel data
-        for (int i = 0; i < pixels.Length; i++)
+        // Write pixel data with better formatting for smaller files
+        for (int y = 0; y < height; y++)
         {
-            var color = pixels[i];
+            var line = new System.Text.StringBuilder();
+            for (int x = 0; x < width; x++)
+            {
+                var color = pixels[y * width + x];
 
-            // Gamma correction
-            var r = (int)(MathF.Sqrt(color.X) * 255);
-            var g = (int)(MathF.Sqrt(color.Y) * 255);
-            var b = (int)(MathF.Sqrt(color.Z) * 255);
+                // Gamma correction and tone mapping for better image quality
+                var r = (int)(MathF.Pow(color.X, 1.0f / 2.2f) * 255);
+                var g = (int)(MathF.Pow(color.Y, 1.0f / 2.2f) * 255);
+                var b = (int)(MathF.Pow(color.Z, 1.0f / 2.2f) * 255);
 
-            // Clamp values
-            r = Math.Clamp(r, 0, 255);
-            g = Math.Clamp(g, 0, 255);
-            b = Math.Clamp(b, 0, 255);
+                // Clamp values
+                r = Math.Clamp(r, 0, 255);
+                g = Math.Clamp(g, 0, 255);
+                b = Math.Clamp(b, 0, 255);
 
-            await writer.WriteLineAsync($"{r} {g} {b}");
+                line.Append($"{r} {g} {b} ");
+            }
+            await writer.WriteLineAsync(line.ToString().TrimEnd());
         }
     }
 }
@@ -203,7 +269,7 @@ public class Camera
         _fov = fovDegrees * MathF.PI / 180.0f;
     }
 
-    public Ray GetRay(int x, int y, int width, int height)
+    public Ray GetRay(float x, float y, int width, int height)
     {
         float aspect = (float)width / height;
         float scale = MathF.Tan(_fov * 0.5f);
