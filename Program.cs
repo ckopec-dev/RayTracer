@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Numerics;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 namespace RayTracer;
 
