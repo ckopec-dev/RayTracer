@@ -24,6 +24,10 @@ bld/
 [Ll]ogs/
 .vs/
 
+# Image output
+*.ppm
+*.png
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json

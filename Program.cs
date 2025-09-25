@@ -328,6 +328,157 @@ public class Sphere(Vector3 center, float radius, Material material) : SceneObje
     }
 }
 
+public class Plane(Vector3 normal, float distance, Material material) : SceneObject(material)
+{
+    private readonly Vector3 _normal = Vector3.Normalize(normal);
+
+    public override HitInfo? Intersect(Ray ray)
+    {
+        var denom = Vector3.Dot(_normal, ray.Direction);
+        if (MathF.Abs(denom) < 0.0001f) // Ray parallel to plane
+            return null;
+
+        var t = (distance - Vector3.Dot(_normal, ray.Origin)) / denom;
+        if (t <= 0.001f)
+            return null;
+
+        var point = ray.PointAt(t);
+        return new HitInfo(point, _normal, t, Material, ray);
+    }
+}
+
+public class Box(Vector3 center, Vector3 size, Material material) : SceneObject(material)
+{
+    private readonly Vector3 _center = center;
+
+    public override HitInfo? Intersect(Ray ray)
+    {
+        var min = _center - size * 0.5f;
+        var max = _center + size * 0.5f;
+
+        var invDir = new Vector3(1.0f / ray.Direction.X, 1.0f / ray.Direction.Y, 1.0f / ray.Direction.Z);
+
+        var t1 = (min - ray.Origin) * invDir;
+        var t2 = (max - ray.Origin) * invDir;
+
+        var tMin = Vector3.Min(t1, t2);
+        var tMax = Vector3.Max(t1, t2);
+
+        var tNear = MathF.Max(MathF.Max(tMin.X, tMin.Y), tMin.Z);
+        var tFar = MathF.Min(MathF.Min(tMax.X, tMax.Y), tMax.Z);
+
+        if (tNear > tFar || tFar < 0.001f)
+            return null;
+
+        var t = tNear > 0.001f ? tNear : tFar;
+        var point = ray.PointAt(t);
+
+        // Calculate normal based on which face was hit
+        //_ = Vector3.Zero;
+        var center = point - _center;
+        var absCenter = Vector3.Abs(center);
+        Vector3 normal;
+        if (absCenter.X > absCenter.Y && absCenter.X > absCenter.Z)
+            normal = new Vector3(MathF.Sign(center.X), 0, 0);
+        else if (absCenter.Y > absCenter.Z)
+            normal = new Vector3(0, MathF.Sign(center.Y), 0);
+        else
+            normal = new Vector3(0, 0, MathF.Sign(center.Z));
+
+        return new HitInfo(point, normal, t, Material, ray);
+    }
+}
+
+public class Cylinder(Vector3 center, float radius, float height, Material material) : SceneObject(material)
+{
+    public override HitInfo? Intersect(Ray ray)
+    {
+        // Transform to cylinder space (assume cylinder is aligned with Y-axis)
+        var oc = ray.Origin - center;
+
+        // Check intersection with infinite cylinder (ignoring Y)
+        var a = ray.Direction.X * ray.Direction.X + ray.Direction.Z * ray.Direction.Z;
+        var b = 2.0f * (oc.X * ray.Direction.X + oc.Z * ray.Direction.Z);
+        var c = oc.X * oc.X + oc.Z * oc.Z - radius * radius;
+
+        var discriminant = b * b - 4 * a * c;
+        if (discriminant < 0)
+            return null;
+
+        var sqrtDiscriminant = MathF.Sqrt(discriminant);
+        var t1 = (-b - sqrtDiscriminant) / (2 * a);
+        var t2 = (-b + sqrtDiscriminant) / (2 * a);
+
+        var t = t1 > 0.001f ? t1 : t2;
+        if (t <= 0.001f)
+            return null;
+
+        var point = ray.PointAt(t);
+        var y = point.Y - center.Y;
+
+        // Check if intersection is within cylinder height
+        if (y < 0 || y > height)
+            return null;
+
+        // Calculate normal (pointing outward from cylinder axis)
+        var normal = Vector3.Normalize(new Vector3(point.X - center.X, 0, point.Z - center.Z));
+
+        return new HitInfo(point, normal, t, Material, ray);
+    }
+}
+
+public class Triangle : SceneObject
+{
+    private readonly Vector3 _v0, _v1, _v2;
+    private readonly Vector3 _normal;
+
+    public Triangle(Vector3 v0, Vector3 v1, Vector3 v2, Material material) : base(material)
+    {
+        _v0 = v0;
+        _v1 = v1;
+        _v2 = v2;
+
+        // Calculate normal using cross product
+        var edge1 = _v1 - _v0;
+        var edge2 = _v2 - _v0;
+        _normal = Vector3.Normalize(Vector3.Cross(edge1, edge2));
+    }
+
+    public override HitInfo? Intersect(Ray ray)
+    {
+        // Möller-Trumbore intersection algorithm
+        var edge1 = _v1 - _v0;
+        var edge2 = _v2 - _v0;
+
+        var h = Vector3.Cross(ray.Direction, edge2);
+        var a = Vector3.Dot(edge1, h);
+
+        if (MathF.Abs(a) < 0.0001f)
+            return null; // Ray parallel to triangle
+
+        var f = 1.0f / a;
+        var s = ray.Origin - _v0;
+        var u = f * Vector3.Dot(s, h);
+
+        if (u < 0.0f || u > 1.0f)
+            return null;
+
+        var q = Vector3.Cross(s, edge1);
+        var v = f * Vector3.Dot(ray.Direction, q);
+
+        if (v < 0.0f || u + v > 1.0f)
+            return null;
+
+        var t = f * Vector3.Dot(edge2, q);
+
+        if (t <= 0.001f)
+            return null;
+
+        var point = ray.PointAt(t);
+        return new HitInfo(point, _normal, t, Material, ray);
+    }
+}
+
 public readonly record struct Light(
     Vector3 Position,
     Vector3 Color,
