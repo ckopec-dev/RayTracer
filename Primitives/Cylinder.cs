@@ -2,7 +2,7 @@
 
 namespace RayTracer.Primitives
 {
-    public class Cylinder(Vector3 center, float radius, float height, Material material) : SceneObject(material)
+    public class Cylinder(string name, Vector3 center, float radius, float height, Material material) : SceneObject(name, material)
     {
         public override HitInfo? Intersect(Ray ray)
         {

@@ -2,7 +2,7 @@
 
 namespace RayTracer.Primitives
 {
-    public class Plane(Vector3 normal, float distance, Material material) : SceneObject(material)
+    public class Plane(string name, Vector3 normal, float distance, Material material) : SceneObject(name, material)
     {
         private readonly Vector3 _normal = Vector3.Normalize(normal);
 

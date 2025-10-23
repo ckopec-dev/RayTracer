@@ -2,7 +2,7 @@
 
 namespace RayTracer.Primitives
 {
-    public class Sphere(Vector3 center, float radius, Material material) : SceneObject(material)
+    public class Sphere(string name, Vector3 center, float radius, Material material) : SceneObject(name, material)
     {
         private readonly Vector3 _center = center;
         private readonly float _radius = radius;

@@ -7,7 +7,7 @@ namespace RayTracer.Primitives
         private readonly Vector3 _v0, _v1, _v2;
         private readonly Vector3 _normal;
 
-        public Triangle(Vector3 v0, Vector3 v1, Vector3 v2, Material material) : base(material)
+        public Triangle(string name, Vector3 v0, Vector3 v1, Vector3 v2, Material material) : base(name, material)
         {
             _v0 = v0;
             _v1 = v1;

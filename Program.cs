@@ -34,16 +34,11 @@ public class Program
         var (width, height, maxDepth, samples) = QualityPresets[quality];
         Console.WriteLine($"Rendering at {width}x{height} with {maxDepth} ray bounces and {samples}x anti-aliasing ({quality} quality)");
 
-        var filename = $"raytraced_{width}x{height}_{samples}xAA.ppm";
-        if (args.Length > 1)
-            filename = args[1];
-
-        Scene scene = Demos.ThreeSpheres();
-        
-        await RenderAsync(scene, width, height, maxDepth, samples, filename);
+        await RenderAsync(Demos.ThreeSpheres(), width, height, maxDepth, samples);
+        await RenderAsync(Demos.BallsOnSurface(), width, height, maxDepth, samples);
     }
 
-    public static async Task RenderAsync(Scene scene, int width, int height, int maxDepth, int samples, string filename)
+    public static async Task RenderAsync(Scene scene, int width, int height, int maxDepth, int samples)
     {
         var pixels = new Vector3[width * height];
         var random = new Random();
@@ -102,12 +97,10 @@ public class Program
 
         var totalTime = DateTime.Now - startTime;
         Console.WriteLine($"Rendering completed in {totalTime:mm\\:ss\\.ff}");
-        await SaveImageAsync(pixels, filename, width, height);
-        Console.WriteLine($"Image saved as '{filename}'");
-        Console.WriteLine($"File size: {new FileInfo(filename).Length / 1024.0 / 1024.0:F1} MB");
+        await SaveImageAsync(pixels, scene.Filename, width, height);
+        Console.WriteLine($"Image saved as '{scene.Filename}'");
+        Console.WriteLine($"File size: {new FileInfo(scene.Filename).Length / 1024.0 / 1024.0:F1} MB");
     }
-
-
 
     private static Vector3 TraceRay(Ray ray, Scene scene, int depth)
     {
@@ -144,6 +137,14 @@ public class Program
             {
                 closestDistance = hit.Value.Distance;
                 closestHit = hit;
+            }
+            try
+            {
+                
+            }
+            catch
+            {
+                Console.WriteLine($"Warning: failure setting hit on {obj.Name}.");
             }
         }
 

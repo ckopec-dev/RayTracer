@@ -1,7 +1,8 @@
 #!/bin/bash
 
-dotnet run 4k render.ppm
+dotnet run low render.ppm
 
 echo "Converting to png format."
-convert render.ppm render.png
-echo "File saved to render.png."
+convert three_spheres.ppm three_spheres.png
+convert balls_on_surface.ppm balls_on_surface.png
+echo "Files saved."

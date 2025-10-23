@@ -2,7 +2,7 @@
 
 namespace RayTracer.Primitives
 {
-    public class Box(Vector3 center, Vector3 size, Material material) : SceneObject(material)
+    public class Box(string name, Vector3 center, Vector3 size, Material material) : SceneObject(name, material)
     {
         private readonly Vector3 _center = center;
 
@@ -29,16 +29,21 @@ namespace RayTracer.Primitives
             var point = ray.PointAt(t);
 
             // Calculate normal based on which face was hit
-            //_ = Vector3.Zero;
             var center = point - _center;
             var absCenter = Vector3.Abs(center);
-            Vector3 normal;
+            Vector3 normal = Vector3.Zero;
             if (absCenter.X > absCenter.Y && absCenter.X > absCenter.Z)
+            {
                 normal = new Vector3(MathF.Sign(center.X), 0, 0);
+            }
             else if (absCenter.Y > absCenter.Z)
+            {
                 normal = new Vector3(0, MathF.Sign(center.Y), 0);
-            else
+            }
+            else if (!float.IsNaN(center.Z))
+            {
                 normal = new Vector3(0, 0, MathF.Sign(center.Z));
+            }
 
             return new HitInfo(point, normal, t, Material, ray);
         }
