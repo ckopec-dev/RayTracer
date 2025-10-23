@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using RayTracer.Primitives;
 
 namespace RayTracer;
 
@@ -33,10 +34,14 @@ public class Program
         var (width, height, maxDepth, samples) = QualityPresets[quality];
         Console.WriteLine($"Rendering at {width}x{height} with {maxDepth} ray bounces and {samples}x anti-aliasing ({quality} quality)");
 
-        await RenderAsync(width, height, maxDepth, samples);
+        var filename = $"raytraced_{width}x{height}_{samples}xAA.ppm";
+        if (args.Length > 1)
+            filename = args[1];
+            
+        await RenderAsync(width, height, maxDepth, samples, filename);
     }
 
-    public static async Task RenderAsync(int width, int height, int maxDepth, int samples)
+    public static async Task RenderAsync(int width, int height, int maxDepth, int samples, string filename)
     {
         var scene = CreateScene();
         var camera = new Camera(new Vector3(0, 0, -5), Vector3.UnitZ, Vector3.UnitY, 60);
@@ -92,8 +97,6 @@ public class Program
 
         var totalTime = DateTime.Now - startTime;
         Console.WriteLine($"Rendering completed in {totalTime:mm\\:ss\\.ff}");
-
-        var filename = $"raytraced_{width}x{height}_{samples}xAA.ppm";
         await SaveImageAsync(pixels, filename, width, height);
         Console.WriteLine($"Image saved as '{filename}'");
         Console.WriteLine($"File size: {new FileInfo(filename).Length / 1024.0 / 1024.0:F1} MB");
@@ -238,254 +241,4 @@ public class Program
             await writer.WriteLineAsync(line.ToString().TrimEnd());
         }
     }
-}
-
-public readonly record struct Ray(Vector3 Origin, Vector3 Direction)
-{
-    public Vector3 PointAt(float t) => Origin + Direction * t;
-
-    public static Ray Create(Vector3 origin, Vector3 direction) =>
-        new(origin, Vector3.Normalize(direction));
-}
-
-public class Camera
-{
-    private readonly Vector3 _position;
-    private readonly Vector3 _forward;
-    private readonly Vector3 _up;
-    private readonly Vector3 _right;
-    private readonly float _fov;
-
-    public Camera(Vector3 position, Vector3 forward, Vector3 up, float fovDegrees)
-    {
-        _position = position;
-        _forward = Vector3.Normalize(forward);
-        _up = Vector3.Normalize(up);
-        _right = Vector3.Cross(_forward, _up);
-        _fov = fovDegrees * MathF.PI / 180.0f;
-    }
-
-    public Ray GetRay(float x, float y, int width, int height)
-    {
-        float aspect = (float)width / height;
-        float scale = MathF.Tan(_fov * 0.5f);
-
-        float px = (2.0f * x / width - 1.0f) * aspect * scale;
-        float py = (1.0f - 2.0f * y / height) * scale;
-
-        var direction = Vector3.Normalize(_forward + _right * px + _up * py);
-        return new Ray(_position, direction);
-    }
-}
-
-public readonly record struct Material(
-    Vector3 Color,
-    float Diffuse,
-    float Reflectivity,
-    float Shininess);
-
-public readonly record struct HitInfo(
-    Vector3 Point,
-    Vector3 Normal,
-    float Distance,
-    Material Material,
-    Ray Ray);
-
-public abstract class SceneObject(Material material)
-{
-    public Material Material { get; } = material;
-    public abstract HitInfo? Intersect(Ray ray);
-}
-
-public class Sphere(Vector3 center, float radius, Material material) : SceneObject(material)
-{
-    private readonly Vector3 _center = center;
-    private readonly float _radius = radius;
-
-    public override HitInfo? Intersect(Ray ray)
-    {
-        var oc = ray.Origin - _center;
-        var a = Vector3.Dot(ray.Direction, ray.Direction);
-        var b = 2.0f * Vector3.Dot(oc, ray.Direction);
-        var c = Vector3.Dot(oc, oc) - _radius * _radius;
-        var discriminant = b * b - 4 * a * c;
-
-        if (discriminant < 0)
-            return null;
-
-        var sqrtDiscriminant = MathF.Sqrt(discriminant);
-        var t1 = (-b - sqrtDiscriminant) / (2 * a);
-        var t2 = (-b + sqrtDiscriminant) / (2 * a);
-        var t = t1 > 0.001f ? t1 : t2;
-
-        if (t <= 0.001f)
-            return null;
-
-        var point = ray.PointAt(t);
-        var normal = Vector3.Normalize(point - _center);
-
-        return new HitInfo(point, normal, t, Material, ray);
-    }
-}
-
-public class Plane(Vector3 normal, float distance, Material material) : SceneObject(material)
-{
-    private readonly Vector3 _normal = Vector3.Normalize(normal);
-
-    public override HitInfo? Intersect(Ray ray)
-    {
-        var denom = Vector3.Dot(_normal, ray.Direction);
-        if (MathF.Abs(denom) < 0.0001f) // Ray parallel to plane
-            return null;
-
-        var t = (distance - Vector3.Dot(_normal, ray.Origin)) / denom;
-        if (t <= 0.001f)
-            return null;
-
-        var point = ray.PointAt(t);
-        return new HitInfo(point, _normal, t, Material, ray);
-    }
-}
-
-public class Box(Vector3 center, Vector3 size, Material material) : SceneObject(material)
-{
-    private readonly Vector3 _center = center;
-
-    public override HitInfo? Intersect(Ray ray)
-    {
-        var min = _center - size * 0.5f;
-        var max = _center + size * 0.5f;
-
-        var invDir = new Vector3(1.0f / ray.Direction.X, 1.0f / ray.Direction.Y, 1.0f / ray.Direction.Z);
-
-        var t1 = (min - ray.Origin) * invDir;
-        var t2 = (max - ray.Origin) * invDir;
-
-        var tMin = Vector3.Min(t1, t2);
-        var tMax = Vector3.Max(t1, t2);
-
-        var tNear = MathF.Max(MathF.Max(tMin.X, tMin.Y), tMin.Z);
-        var tFar = MathF.Min(MathF.Min(tMax.X, tMax.Y), tMax.Z);
-
-        if (tNear > tFar || tFar < 0.001f)
-            return null;
-
-        var t = tNear > 0.001f ? tNear : tFar;
-        var point = ray.PointAt(t);
-
-        // Calculate normal based on which face was hit
-        //_ = Vector3.Zero;
-        var center = point - _center;
-        var absCenter = Vector3.Abs(center);
-        Vector3 normal;
-        if (absCenter.X > absCenter.Y && absCenter.X > absCenter.Z)
-            normal = new Vector3(MathF.Sign(center.X), 0, 0);
-        else if (absCenter.Y > absCenter.Z)
-            normal = new Vector3(0, MathF.Sign(center.Y), 0);
-        else
-            normal = new Vector3(0, 0, MathF.Sign(center.Z));
-
-        return new HitInfo(point, normal, t, Material, ray);
-    }
-}
-
-public class Cylinder(Vector3 center, float radius, float height, Material material) : SceneObject(material)
-{
-    public override HitInfo? Intersect(Ray ray)
-    {
-        // Transform to cylinder space (assume cylinder is aligned with Y-axis)
-        var oc = ray.Origin - center;
-
-        // Check intersection with infinite cylinder (ignoring Y)
-        var a = ray.Direction.X * ray.Direction.X + ray.Direction.Z * ray.Direction.Z;
-        var b = 2.0f * (oc.X * ray.Direction.X + oc.Z * ray.Direction.Z);
-        var c = oc.X * oc.X + oc.Z * oc.Z - radius * radius;
-
-        var discriminant = b * b - 4 * a * c;
-        if (discriminant < 0)
-            return null;
-
-        var sqrtDiscriminant = MathF.Sqrt(discriminant);
-        var t1 = (-b - sqrtDiscriminant) / (2 * a);
-        var t2 = (-b + sqrtDiscriminant) / (2 * a);
-
-        var t = t1 > 0.001f ? t1 : t2;
-        if (t <= 0.001f)
-            return null;
-
-        var point = ray.PointAt(t);
-        var y = point.Y - center.Y;
-
-        // Check if intersection is within cylinder height
-        if (y < 0 || y > height)
-            return null;
-
-        // Calculate normal (pointing outward from cylinder axis)
-        var normal = Vector3.Normalize(new Vector3(point.X - center.X, 0, point.Z - center.Z));
-
-        return new HitInfo(point, normal, t, Material, ray);
-    }
-}
-
-public class Triangle : SceneObject
-{
-    private readonly Vector3 _v0, _v1, _v2;
-    private readonly Vector3 _normal;
-
-    public Triangle(Vector3 v0, Vector3 v1, Vector3 v2, Material material) : base(material)
-    {
-        _v0 = v0;
-        _v1 = v1;
-        _v2 = v2;
-
-        // Calculate normal using cross product
-        var edge1 = _v1 - _v0;
-        var edge2 = _v2 - _v0;
-        _normal = Vector3.Normalize(Vector3.Cross(edge1, edge2));
-    }
-
-    public override HitInfo? Intersect(Ray ray)
-    {
-        // Möller-Trumbore intersection algorithm
-        var edge1 = _v1 - _v0;
-        var edge2 = _v2 - _v0;
-
-        var h = Vector3.Cross(ray.Direction, edge2);
-        var a = Vector3.Dot(edge1, h);
-
-        if (MathF.Abs(a) < 0.0001f)
-            return null; // Ray parallel to triangle
-
-        var f = 1.0f / a;
-        var s = ray.Origin - _v0;
-        var u = f * Vector3.Dot(s, h);
-
-        if (u < 0.0f || u > 1.0f)
-            return null;
-
-        var q = Vector3.Cross(s, edge1);
-        var v = f * Vector3.Dot(ray.Direction, q);
-
-        if (v < 0.0f || u + v > 1.0f)
-            return null;
-
-        var t = f * Vector3.Dot(edge2, q);
-
-        if (t <= 0.001f)
-            return null;
-
-        var point = ray.PointAt(t);
-        return new HitInfo(point, _normal, t, Material, ray);
-    }
-}
-
-public readonly record struct Light(
-    Vector3 Position,
-    Vector3 Color,
-    float Intensity);
-
-public class Scene
-{
-    public List<SceneObject> Objects { get; } = [];
-    public List<Light> Lights { get; } = [];
 }
