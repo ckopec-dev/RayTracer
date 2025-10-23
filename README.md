@@ -109,6 +109,9 @@ dotnet run 4k       # Maximum quality (takes longer!)
 
 # Always use Release mode for best performance
 dotnet run -c Release ultra
+
+# Use a script to generate and convert to a png
+$ ./generate.sh
 ```
 
 ## **Performance Examples:**
