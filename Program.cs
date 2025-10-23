@@ -86,7 +86,12 @@ public class Program
                         if (progress > 0)
                         {
                             var estimated = TimeSpan.FromTicks((long)(elapsed.Ticks / progress * 100));
-                            Console.WriteLine($"Progress: {progress:F1}% ({linesCompleted}/{height} lines) - ETA: {estimated:mm\\:ss}");
+                            var eta = estimated - elapsed;
+                            Console.WriteLine($"Progress: {progress:F1}% ({linesCompleted}/{height} lines) - " +
+                                //$"Estimated render time: {estimated:mm\\:ss} - " +
+                                //$"Elapsed: {elapsed:mm\\:ss} - " +
+                                $"ETA: {eta:mm\\:ss}"
+                                );
                         }
                     }
                 }
