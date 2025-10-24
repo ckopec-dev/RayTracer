@@ -114,7 +114,13 @@ dotnet run -c Release ultra
 $ ./generate.sh
 
 # Combine multiple png files into a single animated gif
-$ convert -delay 10 -loop 0 moving_light_*.png output.gif
+$ convert -delay 10 -loop 0 moving_light_*.png moving.gif
+
+# Works much more reliably but with some loss
+$ ffmpeg -framerate 10 -i moving_%03d.png moving.gif
+
+# Lossless but will probably require a 3rd party media player such as VLC
+$ ffmpeg -framerate 24 -i "moving_%03d.png" -c:v libx264rgb -crf 0 -pix_fmt rgb24 moving.mp4
 ```
 
 ## **Performance Examples:**

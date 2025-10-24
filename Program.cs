@@ -29,17 +29,8 @@ public class Program
         var (width, height, maxDepth, samples) = QualityPresets[quality];
         Console.WriteLine($"Rendering at {width}x{height} with {maxDepth} ray bounces and {samples}x anti-aliasing ({quality} quality)");
 
-        await Demos.ThreeSpheres(width, height, maxDepth, samples);     
+        await Demos.ThreeSpheres(width, height, maxDepth, samples);
         await Demos.BallsOnSurface(width, height, maxDepth, samples);
-        
-        // Move lights around
-        //for (decimal f = 5; f > 0; f -= 0.1m)
-        //{
-        //    Scene balls = Demos.BallsOnSurface();
-        //    balls.Filename = new string($"moving_light_{f}.png");
-        //    //balls.Camera.Position = new((float)f, balls.Camera.Position.Y, balls.Camera.Position.Z);
-        //    balls.Lights[0].Position = new((float)f, (float)f, (float)f);
-        //    await RenderAsync(balls, width, height, maxDepth, samples);
-        //}
+        await Demos.MovingLight(width, height, maxDepth, samples);
     }
 }
