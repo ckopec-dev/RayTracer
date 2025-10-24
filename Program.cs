@@ -1,5 +1,7 @@
-﻿using System.Numerics;
-using RayTracer.Primitives;
+﻿using RayTracer.Primitives;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using System.Numerics;
 
 namespace RayTracer;
 
@@ -36,6 +38,15 @@ public class Program
 
         await RenderAsync(Demos.ThreeSpheres(), width, height, maxDepth, samples);
         await RenderAsync(Demos.BallsOnSurface(), width, height, maxDepth, samples);
+
+        // Move lights around
+        for (decimal f = 5; f > 0; f -= 0.1m)
+        {
+            Scene balls = Demos.BallsOnSurface();
+            balls.Filename = new string($"moving_light_{f}.png");
+            balls.Camera.Position = new((float)f, balls.Camera.Position.Y, balls.Camera.Position.Z);
+            await RenderAsync(balls, width, height, maxDepth, samples);
+        }
     }
 
     public static async Task RenderAsync(Scene scene, int width, int height, int maxDepth, int samples)
@@ -138,14 +149,6 @@ public class Program
                 closestDistance = hit.Value.Distance;
                 closestHit = hit;
             }
-            try
-            {
-                
-            }
-            catch
-            {
-                Console.WriteLine($"Warning: failure setting hit on {obj.Name}.");
-            }
         }
 
         return closestHit;
@@ -193,35 +196,31 @@ public class Program
 
     private static async Task SaveImageAsync(Vector3[] pixels, string filename, int width, int height)
     {
-        using var writer = new StreamWriter(filename);
-
-        // PPM header
-        await writer.WriteLineAsync("P3");
-        await writer.WriteLineAsync($"# Ray traced image {width}x{height}");
-        await writer.WriteLineAsync($"{width} {height}");
-        await writer.WriteLineAsync("255");
-
-        // Write pixel data with better formatting for smaller files
-        for (int y = 0; y < height; y++)
+        await Task.Run(() =>
         {
-            var line = new System.Text.StringBuilder();
-            for (int x = 0; x < width; x++)
+            using var image = new Image<Rgb24>(width, height);
+
+            image.ProcessPixelRows(accessor =>
             {
-                var color = pixels[y * width + x];
+                for (int y = 0; y < height; y++)
+                {
+                    var rowSpan = accessor.GetRowSpan(y);
 
-                // Gamma correction and tone mapping for better image quality
-                var r = (int)(MathF.Pow(color.X, 1.0f / 2.2f) * 255);
-                var g = (int)(MathF.Pow(color.Y, 1.0f / 2.2f) * 255);
-                var b = (int)(MathF.Pow(color.Z, 1.0f / 2.2f) * 255);
+                    for (int x = 0; x < width; x++)
+                    {
+                        var color = pixels[y * width + x];
 
-                // Clamp values
-                r = Math.Clamp(r, 0, 255);
-                g = Math.Clamp(g, 0, 255);
-                b = Math.Clamp(b, 0, 255);
+                        // Gamma correction and tone mapping for better image quality
+                        var r = (byte)Math.Clamp((int)(MathF.Pow(color.X, 1.0f / 2.2f) * 255), 0, 255);
+                        var g = (byte)Math.Clamp((int)(MathF.Pow(color.Y, 1.0f / 2.2f) * 255), 0, 255);
+                        var b = (byte)Math.Clamp((int)(MathF.Pow(color.Z, 1.0f / 2.2f) * 255), 0, 255);
 
-                line.Append($"{r} {g} {b} ");
-            }
-            await writer.WriteLineAsync(line.ToString().TrimEnd());
-        }
+                        rowSpan[x] = new Rgb24(r, g, b);
+                    }
+                }
+            });
+
+            image.SaveAsPng(filename);
+        });
     }
 }

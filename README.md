@@ -112,6 +112,9 @@ dotnet run -c Release ultra
 
 # Use a script to generate and convert to a png
 $ ./generate.sh
+
+# Combine multiple png files into a single animated gif
+$ convert -delay 10 -loop 0 moving_light_*.png output.gif
 ```
 
 ## **Performance Examples:**

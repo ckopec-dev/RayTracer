@@ -4,11 +4,17 @@ namespace RayTracer;
 
 public class Camera
 {
-    private readonly Vector3 _position;
+    private Vector3 _position;
     private readonly Vector3 _forward;
     private readonly Vector3 _up;
     private readonly Vector3 _right;
     private readonly float _fov;
+
+    public Vector3 Position
+    {
+        get { return _position; }
+        set { _position = value; }
+    }
 
     public Camera(Vector3 position, Vector3 forward, Vector3 up, float fovDegrees)
     {

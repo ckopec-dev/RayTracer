@@ -7,7 +7,7 @@ namespace RayTracer
     {
         public static Scene ThreeSpheres()
         {
-            var scene = new Scene("three_spheres.ppm");
+            var scene = new Scene("three_spheres.png");
 
             // Add spheres with different materials
             scene.Objects.Add(new Sphere("Red Ball", new Vector3(0, 0, 3), 1.0f,
@@ -35,7 +35,7 @@ namespace RayTracer
 
         public static Scene BallsOnSurface()
         {
-            var scene = new Scene("balls_on_surface.ppm");
+            var scene = new Scene("balls_on_surface.png");
 
             // Add spheres with different materials
             scene.Objects.Add(new Sphere("Red Ball",new Vector3(0, 0, 3), 1.0f,
@@ -47,7 +47,7 @@ namespace RayTracer
             scene.Objects.Add(new Sphere("Green Ball", new Vector3(2, 0, 4), 1.0f,
                 new Material(new Vector3(0.2f, 0.2f, 1), 0.9f, 0.1f, 25)));
 
-            scene.Objects.Add(new Box("Ground", new Vector3(0, -500f, 0), new Vector3(1000f, 1000f, 1000f),
+            scene.Objects.Add(new Box("Ground", new Vector3(0, -600f, 0), new Vector3(1000f, 1000f, 1000f),
                 new Material(new Vector3(1, 0.2f, 0.2f), 0.8f, 0.2f, 50)));
 
             // Add lights

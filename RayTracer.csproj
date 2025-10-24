@@ -7,4 +7,64 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="balls_on_surface.png" />
+    <None Remove="moving_light_0.1.png" />
+    <None Remove="moving_light_0.2.png" />
+    <None Remove="moving_light_0.3.png" />
+    <None Remove="moving_light_0.4.png" />
+    <None Remove="moving_light_0.5.png" />
+    <None Remove="moving_light_0.6.png" />
+    <None Remove="moving_light_0.7.png" />
+    <None Remove="moving_light_0.8.png" />
+    <None Remove="moving_light_0.9.png" />
+    <None Remove="moving_light_1.0.png" />
+    <None Remove="moving_light_1.1.png" />
+    <None Remove="moving_light_1.2.png" />
+    <None Remove="moving_light_1.3.png" />
+    <None Remove="moving_light_1.4.png" />
+    <None Remove="moving_light_1.5.png" />
+    <None Remove="moving_light_1.6.png" />
+    <None Remove="moving_light_1.7.png" />
+    <None Remove="moving_light_1.8.png" />
+    <None Remove="moving_light_1.9.png" />
+    <None Remove="moving_light_2.0.png" />
+    <None Remove="moving_light_2.1.png" />
+    <None Remove="moving_light_2.2.png" />
+    <None Remove="moving_light_2.3.png" />
+    <None Remove="moving_light_2.4.png" />
+    <None Remove="moving_light_2.5.png" />
+    <None Remove="moving_light_2.6.png" />
+    <None Remove="moving_light_2.7.png" />
+    <None Remove="moving_light_2.8.png" />
+    <None Remove="moving_light_2.9.png" />
+    <None Remove="moving_light_3.0.png" />
+    <None Remove="moving_light_3.1.png" />
+    <None Remove="moving_light_3.2.png" />
+    <None Remove="moving_light_3.3.png" />
+    <None Remove="moving_light_3.4.png" />
+    <None Remove="moving_light_3.5.png" />
+    <None Remove="moving_light_3.6.png" />
+    <None Remove="moving_light_3.7.png" />
+    <None Remove="moving_light_3.8.png" />
+    <None Remove="moving_light_3.9.png" />
+    <None Remove="moving_light_4.0.png" />
+    <None Remove="moving_light_4.1.png" />
+    <None Remove="moving_light_4.2.png" />
+    <None Remove="moving_light_4.3.png" />
+    <None Remove="moving_light_4.4.png" />
+    <None Remove="moving_light_4.5.png" />
+    <None Remove="moving_light_4.6.png" />
+    <None Remove="moving_light_4.7.png" />
+    <None Remove="moving_light_4.8.png" />
+    <None Remove="moving_light_4.9.png" />
+    <None Remove="moving_light_5.png" />
+    <None Remove="output.gif" />
+    <None Remove="three_spheres.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+  </ItemGroup>
+
 </Project>
