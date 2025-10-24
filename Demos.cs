@@ -5,7 +5,7 @@ namespace RayTracer
 {
     internal class Demos
     {
-        public static Scene ThreeSpheres()
+        public static async Task ThreeSpheres(int width, int height, int maxDepth, int samples)
         {
             var scene = new Scene("three_spheres.png");
 
@@ -30,10 +30,10 @@ namespace RayTracer
             // Add camera
             scene.Camera = new Camera(new Vector3(0, 0, -5), Vector3.UnitZ, Vector3.UnitY, 60);
 
-            return scene;
+            await Engine.RenderAsync(scene, width, height, maxDepth, samples);
         }
 
-        public static Scene BallsOnSurface()
+        public static async Task BallsOnSurface(int width, int height, int maxDepth, int samples)
         {
             var scene = new Scene("balls_on_surface.png");
 
@@ -57,7 +57,7 @@ namespace RayTracer
             // Add camera
             scene.Camera = new Camera(new Vector3(0, 0, -5), Vector3.UnitZ, Vector3.UnitY, 60);
 
-            return scene;
+            await Engine.RenderAsync(scene, width, height, maxDepth, samples);
         }
     }
 }
