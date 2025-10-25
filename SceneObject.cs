@@ -1,5 +1,4 @@
-﻿
-namespace RayTracer.Primitives
+﻿namespace RayTracer
 {
     public abstract class SceneObject(string name, Material material)
     {
