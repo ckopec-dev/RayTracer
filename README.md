@@ -120,7 +120,7 @@ $ convert -delay 10 -loop 0 moving_light_*.png moving.gif
 $ ffmpeg -framerate 10 -i moving_%03d.png moving.gif
 
 # Lossless but will probably require a 3rd party media player such as VLC
-$ ffmpeg -framerate 24 -i "moving_%03d.png" -c:v libx264rgb -crf 0 -pix_fmt rgb24 moving.mp4
+$ ffmpeg -framerate 24 -i "moving_light_%03d.png" -c:v libx264rgb -crf 0 -pix_fmt rgb24 moving_light_.mp4
 ```
 
 ## **Performance Examples:**
